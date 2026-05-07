@@ -166,21 +166,24 @@ with t1:
     map_data = st_folium(m, width="100%", height=500, key="map_final")
 
     # CLICK GHIM
+    # --- ĐOẠN NÀY SỬA LẠI CHO KHỚP SUPABASE (KHOẢNG DÒNG 171) ---
     if map_data['last_object_clicked']:
         lat_c = map_data['last_object_clicked']['lat']
+        # Sửa 'Vĩ độ' thành 'lat'
         sel = next((l for l in st.session_state.off_locations if abs(l.get('lat', 0) - lat_c) < 0.0001), None)
-        # Tìm đoạn "if sel:" trong phần xử lý click ghim và thêm phần hiển thị ảnh:
+        
         if sel:
-            st.info(f"📍 Đang chọn: {sel['Tên']}")
+            # Sửa sel['Tên'] thành sel['name'] (Dòng 174 bị lỗi của Tuyển nè)
+            loc_name = sel.get('name', 'Địa điểm')
+            st.info(f"📍 Đang chọn: {loc_name}")
             
-            # HIỆN ẢNH ĐẠI DIỆN NẾU CÓ
-            if 'main_img' in sel and sel['main_img']:
+            # HIỆN ẢNH ĐẠI DIỆN NẾU CÓ (Sửa 'main_img' cho chắc chắn)
+            if sel.get('main_img'):
                 st.image(f"data:image/png;base64,{sel['main_img']}", 
-                        caption=f"Ảnh thực tế tại {sel['Tên']}", 
+                        caption=f"Ảnh thực tế tại {loc_name}", 
                         use_container_width=True)
             
             c1, c2 = st.columns(2)
-            # ... (giữ nguyên các nút Đăng bài và Xem ảnh bên dưới)
             if c1.button("➕ Đăng bài", use_container_width=True): st.session_state.view_mode = "post"
             if c2.button("📸 Xem ảnh", use_container_width=True): st.session_state.view_mode = "view"
             
@@ -190,16 +193,32 @@ with t1:
                     f = st.file_uploader("Ảnh", type=['jpg','png','jpeg'])
                     c = st.text_area("Cảm nghĩ")
                     if st.form_submit_button("Gửi bài"):
-                        new_d = {"id": len(st.session_state.off_diaries)+1, "loc_name": sel['Tên'], "title": t, "content": c, "img_data": get_img_64(f), "date": datetime.now().strftime("%d/%m/%Y"), "author": st.session_state.user_name, "approved": False}
-                        st.session_state.off_diaries.append(new_d)
-                        save_data(st.session_state.off_diaries, "Diary")
-                        st.success("Đã gửi bài chờ duyệt!")
+                        # Khi lưu Nhật ký, cũng dùng sel['name'] thay cho sel['Tên']
+                        new_d = {
+                            "loc_name": loc_name, 
+                            "title": t, 
+                            "content": c, 
+                            "img_data": get_img_64(f), 
+                            "date": datetime.now().strftime("%d/%m/%Y"), 
+                            "author": st.session_state.user_name, 
+                            "approved": False
+                        }
+                        # Lưu diary lên Supabase
+                        try:
+                            supabase.table("diaries").insert(new_d).execute()
+                            st.success("Đã gửi bài chờ duyệt lên Supabase!")
+                        except Exception as e:
+                            st.error(f"Lỗi lưu nhật ký: {e}")
 
             elif st.session_state.view_mode == "view":
-                pics = [d for d in st.session_state.off_diaries if str(d['loc_name']) == str(sel['Tên']) and d['approved']]
+                # Sửa d['loc_name'] == sel['name']
+                pics = [d for d in st.session_state.off_diaries if str(d.get('loc_name')) == str(loc_name) and d.get('approved')]
+                if not pics:
+                    st.write("Chưa có ảnh nào được duyệt tại đây.")
                 for p in pics[::-1]:
-                    st.image(f"data:image/png;base64,{p['img_data']}", use_container_width=True)
-                    st.caption(f"**{p['title']}** - {p['author']}")
+                    if p.get('img_data'):
+                        st.image(f"data:image/png;base64,{p['img_data']}", use_container_width=True)
+                        st.caption(f"**{p.get('title')}** - {p.get('author')}")
 
     # --- CHỨC NĂNG ADMIN (CẬP NHẬT: XOÁ ĐỊA ĐIỂM) ---
     if st.session_state.is_admin:
