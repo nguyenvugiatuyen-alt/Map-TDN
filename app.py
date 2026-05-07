@@ -64,22 +64,18 @@ from PIL import Image
 import io
 
 def get_img_64(file):
-    if file:
-        # Mở ảnh bằng thư viện Pillow
-        img = Image.open(file)
-        # Chuyển về hệ màu RGB (tránh lỗi khi lưu ảnh PNG/WebP)
-        img = img.convert("RGB")
-        
-        # Nén ảnh: Giảm kích thước xuống tối đa 800px chiều rộng
-        img.thumbnail((800, 800)) 
-        
-        # Lưu vào bộ nhớ đệm với chất lượng 60%
-        buffered = io.BytesIO()
-        img.save(buffered, format="JPEG", quality=60, optimize=True)
-        
-        # Trả về chuỗi Base64 đã nén
-        return base64.b64encode(buffered.getvalue()).decode()
-    return None
+    if file is not None: # Kiểm tra kỹ xem có file không
+        try:
+            img = Image.open(file)
+            img = img.convert("RGB")
+            img.thumbnail((800, 800)) 
+            buffered = io.BytesIO()
+            img.save(buffered, format="JPEG", quality=60, optimize=True)
+            return base64.b64encode(buffered.getvalue()).decode()
+        except Exception as e:
+            st.error(f"Lỗi đọc file ảnh: {e}")
+            return None
+    return None # Nếu không có file thì trả về None, không báo lỗi đỏ
 
 # Nạp dữ liệu
 locs, diaries = load_data()
@@ -266,16 +262,17 @@ with t1:
                 # --- TÌM ĐOẠN NÀY VÀ THAY THẾ ---
                 if st.form_submit_button("Lưu thủ công"):
                     if m_name:
-                        # ĐOẠN MỚI DÁN VÀO ĐÂY:
+                        # Xử lý lấy ảnh an toàn
+                        img_encoded = get_img_64(m_img)
+                        
                         new_loc_man = {
-                            "name": m_name, 
-                            "lat": m_lat, 
-                            "lon": m_lng, 
-                            "main_img": get_img_64(m_img), 
+                            "name": m_name,
+                            "lat": m_lat,
+                            "lon": m_lng,
+                            "main_img": img_encoded, # Sẽ là chuỗi base64 hoặc None
                             "description": m_desc
                         }
-                        save_location(new_loc_man) # Gọi hàm lưu lên Supabase
-                        
+                        save_location(new_loc_man)
                         st.success(f"Đã lưu thủ công: {m_name}")
                         st.rerun()
             # --- PHẦN 3: DANH SÁCH QUẢN LÝ ĐỊA ĐIỂM (CHỈ GIỮ LẠI 1 ĐOẠN NÀY) ---
