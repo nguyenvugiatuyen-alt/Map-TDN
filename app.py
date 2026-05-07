@@ -75,14 +75,23 @@ def get_img_64(file):
 
 # Nạp dữ liệu
 locs, diaries = load_data()
-if 'off_locations' not in st.session_state: 
-    st.session_state.off_locations = locs
-if 'off_diaries' not in st.session_state: 
+# --- 1. NẠP DỮ LIỆU TỪ SUPABASE ---
+if 'off_locations' not in st.session_state or 'off_diaries' not in st.session_state:
+    locs, diaries = load_data()
+    
+    # 2. SẮP XẾP THEO ALPHABET (Lớp 10 -> 11 -> 12)
+    st.session_state.off_locations = sorted(locs, key=lambda x: x.get('name', ''))
     st.session_state.off_diaries = diaries
-if 'map_center' not in st.session_state: st.session_state.map_center = [10.7794, 106.7010]
-if 'view_mode' not in st.session_state: st.session_state.view_mode = None
-if 'is_admin' not in st.session_state: st.session_state.is_admin = False
-if 'user_name' not in st.session_state: st.session_state.user_name = None
+
+# --- 2. KHỞI TẠO CÁC GIÁ TRỊ KHÁC (Chỉ chạy 1 lần) ---
+if 'map_center' not in st.session_state: 
+    st.session_state.map_center = [10.7794, 106.7010]
+if 'view_mode' not in st.session_state: 
+    st.session_state.view_mode = None
+if 'is_admin' not in st.session_state: 
+    st.session_state.is_admin = False
+if 'user_name' not in st.session_state: 
+    st.session_state.user_name = None
 
 # --- 4. SIDEBAR ---
 st.sidebar.markdown(f"""
