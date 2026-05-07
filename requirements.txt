@@ -1,0 +1,6 @@
+supabase
+streamlit-folium
+folium
+pandas
+geopy
+Pillow
