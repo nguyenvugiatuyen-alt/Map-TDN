@@ -14,18 +14,14 @@ key: str = "sb_publishable_5mZvJ9_Y6QQBBI6ihGhLDw_INxHRnnS"
 supabase: Client = create_client(url, key)
 
 # --- CÁC HÀM XỬ LÝ DỮ LIỆU ---
+@st.cache_data(ttl=600) # Lưu bộ nhớ đệm trong 10 phút
 def load_data():
     try:
-        # 1. Lấy dữ liệu địa điểm
         locs_res = supabase.table("locations").select("*").execute()
-        # 2. Lấy dữ liệu nhật ký (Nhớ tên bảng trên Supabase phải là 'diaries')
         diary_res = supabase.table("diaries").select("*").execute()
-        
         return locs_res.data, diary_res.data
     except Exception as e:
-        st.error(f"Lỗi load dữ liệu từ Supabase: {e}")
         return [], []
-
 def save_location(new_loc):
     try:
         supabase.table("locations").insert(new_loc).execute()
@@ -68,9 +64,9 @@ def get_img_64(file):
         try:
             img = Image.open(file)
             img = img.convert("RGB")
-            img.thumbnail((800, 800)) 
+            img.thumbnail((400, 400)) 
             buffered = io.BytesIO()
-            img.save(buffered, format="JPEG", quality=60, optimize=True)
+            img.save(buffered, format="JPEG", quality=40, optimize=True)
             return base64.b64encode(buffered.getvalue()).decode()
         except Exception as e:
             st.error(f"Lỗi đọc file ảnh: {e}")
