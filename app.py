@@ -168,7 +168,7 @@ with t1:
     # CLICK GHIM
     if map_data['last_object_clicked']:
         lat_c = map_data['last_object_clicked']['lat']
-        sel = next((l for l in st.session_state.off_locations if abs(l['Vĩ độ'] - lat_c) < 0.0001), None)
+        sel = next((l for l in st.session_state.off_locations if abs(l.get('lat', 0) - lat_c) < 0.0001), None)
         # Tìm đoạn "if sel:" trong phần xử lý click ghim và thêm phần hiển thị ảnh:
         if sel:
             st.info(f"📍 Đang chọn: {sel['Tên']}")
